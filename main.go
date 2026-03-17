@@ -11,7 +11,6 @@ import (
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
-	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
 )
 
@@ -23,6 +22,39 @@ var VALUES = []int{
 	10000, 12500, 25000, 50000, 75000,
 	100000, 200000, 300000, 400000,
 	500000, 750000, 1000000,
+}
+
+func (g *Game) showSwapOfferDialog(parent fyne.Window) {
+	// Create buttons with symbols
+	acceptBtn := widget.NewButton("✓ Accept", nil)
+	declineBtn := widget.NewButton("✗ Decline", nil)
+
+	// Set colors: Accept = Blue, Decline = Grey
+	acceptBtn.Importance = widget.HighImportance    // Blue
+	declineBtn.Importance = widget.MediumImportance // Grey
+
+	content := widget.NewLabel("🍽️ The Banker offers to swap your tray with another unopened one. Swap?")
+	// Accept on LEFT, Decline on RIGHT
+	buttons := container.NewHBox(acceptBtn, declineBtn)
+	dialogContent := container.NewVBox(content, buttons)
+
+	dlg := dialog.NewCustomWithoutButtons("Banker's Offer", dialogContent, parent)
+
+	// Accept button = do the swap
+	acceptBtn.OnTapped = func() {
+		dlg.Hide()
+		g.swapTray(parent)
+	}
+
+	// Decline button = don't swap
+	declineBtn.OnTapped = func() {
+		dlg.Hide()
+		if g.getUnopenedCount() == 1 {
+			g.showFinalReveal(parent)
+		}
+	}
+
+	dlg.Show()
 }
 
 // Game holds the state and UI elements
@@ -56,14 +88,14 @@ func NewGame() *Game {
 
 // Helper function to load image from file with better error handling
 func loadImage(filename string, width, height float32) fyne.CanvasObject {
-	uri := storage.NewFileURI("images/" + filename)
-	img := canvas.NewImageFromURI(uri)
-
-	// Check if image loaded successfully
-	if img == nil {
-		// Return placeholder if image fails to load
-		return widget.NewLabel(fmt.Sprintf("Image: %s", filename))
+	if res := getEmbeddedImageResource(filename); res != nil {
+		img := canvas.NewImageFromResource(res)
+		img.FillMode = canvas.ImageFillContain
+		img.SetMinSize(fyne.NewSize(width, height))
+		return img
 	}
+
+	img := canvas.NewImageFromFile("images/" + filename)
 
 	img.FillMode = canvas.ImageFillContain
 	img.SetMinSize(fyne.NewSize(width, height))
@@ -404,36 +436,7 @@ func (g *Game) showChefOffer(parent fyne.Window) {
 
 	// Normal chef offer flow (no bonus)
 	if g.chef.OfferSwap() {
-		// Create buttons with symbols
-		acceptBtn := widget.NewButton("✓ Accept", nil)
-		declineBtn := widget.NewButton("✗ Decline", nil)
-
-		// Set colors: Accept = Blue, Decline = Grey
-		acceptBtn.Importance = widget.HighImportance    // Blue
-		declineBtn.Importance = widget.MediumImportance // Grey
-
-		content := widget.NewLabel("🍽️ The Banker offers to swap your tray with another unopened one. Swap?")
-		// Accept on LEFT, Decline on RIGHT
-		buttons := container.NewHBox(acceptBtn, declineBtn)
-		dialogContent := container.NewVBox(content, buttons)
-
-		dlg := dialog.NewCustomWithoutButtons("Banker's Offer", dialogContent, parent)
-
-		// Accept button = do the swap
-		acceptBtn.OnTapped = func() {
-			dlg.Hide()
-			g.swapTray(parent)
-		}
-
-		// Decline button = don't swap
-		declineBtn.OnTapped = func() {
-			dlg.Hide()
-			if g.getUnopenedCount() == 1 {
-				g.showFinalReveal(parent)
-			}
-		}
-
-		dlg.Show()
+		g.showSwapOfferDialog(parent)
 		return
 	}
 
@@ -476,7 +479,7 @@ func (g *Game) showBonusSequence(parent fyne.Window, remaining []int) {
 func (g *Game) proceedWithChefOffer(parent fyne.Window, remaining []int) {
 	// If chef proposes swap
 	if g.chef.OfferSwap() {
-		//g.showSwapOfferDialog(parent)
+		g.showSwapOfferDialog(parent)
 		return
 	}
 
@@ -560,7 +563,7 @@ func (g *Game) showOfferDialog(parent fyne.Window, offer int) {
 	// Accept button = take the deal
 	acceptBtn.OnTapped = func() {
 		dlg.Hide()
-		g.showDealAccepted(parent, offer)
+		g.showDealAccepted(parent, offer, chefImgID)
 	}
 
 	// Decline button = continue playing
@@ -715,7 +718,15 @@ func (g *Game) showFinalReveal(parent fyne.Window) {
 				container.NewCenter(label),
 				container.NewCenter(moneyImg),
 			)
+		} else {
+			contentWidget = container.NewVBox(
+				widget.NewSeparator(),
+				widget.NewLabel(fmt.Sprintf("Your tray (Tray %d) contained:\n$%d", g.playerTray+1, g.trayValues[g.playerTray])),
+			)
 		}
+	}
+	if contentWidget == nil {
+		contentWidget = widget.NewLabel("Final reveal unavailable")
 	}
 
 	d := dialog.NewCustom("Final Reveal", "OK", contentWidget, parent)
@@ -782,9 +793,8 @@ func (g *Game) showPlayAgain(parent fyne.Window) {
 	dlg.Show()
 }
 
-func (g *Game) showDealAccepted(parent fyne.Window, offer int) {
-	// Get random chef image for the accepted deal
-	chefImgID := g.chef.GetRandomChefImage()
+func (g *Game) showDealAccepted(parent fyne.Window, offer int, chefImgID int) {
+	// Reuse the same chef image that was shown in the offer dialog
 	chefImg := loadImage(fmt.Sprintf("%d.jpg", chefImgID), 200, 200)
 
 	var contentWidget fyne.CanvasObject

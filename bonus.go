@@ -103,6 +103,10 @@ func (bm *BonusManager) TriggerMultiplierWithCallback(parent fyne.Window, onComp
 			}
 		})
 		d.Show()
+	}, func() {
+		if onComplete != nil {
+			onComplete()
+		}
 	})
 }
 
@@ -142,6 +146,10 @@ func (bm *BonusManager) TriggerAdditiveWithCallback(parent fyne.Window, onComple
 			}
 		})
 		d.Show()
+	}, func() {
+		if onComplete != nil {
+			onComplete()
+		}
 	})
 }
 
@@ -173,7 +181,7 @@ func (bm *BonusManager) Apply(offer int) int {
 	return int(modified)
 }
 
-func (bm *BonusManager) showBonusChoiceDialog(parent fyne.Window, title string, options []string, onChosen func(choice string)) {
+func (bm *BonusManager) showBonusChoiceDialog(parent fyne.Window, title string, options []string, onChosen func(choice string), onCancel func()) {
 	// build a grid of buttons (cases)
 	grid := container.NewGridWithColumns(5)
 	var chosen string
@@ -200,6 +208,13 @@ func (bm *BonusManager) showBonusChoiceDialog(parent fyne.Window, title string, 
 
 	// create the custom dialog (removed the confirm buttons since we select by clicking cases)
 	dlg = dialog.NewCustom(title, "Cancel", grid, parent)
+	dlg.SetOnClosed(func() {
+		if chosen == "" {
+			if onCancel != nil {
+				onCancel()
+			}
+		}
+	})
 	dlg.Show()
 }
 
