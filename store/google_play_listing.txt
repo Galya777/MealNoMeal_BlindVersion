@@ -1,0 +1,21 @@
+APP NAME: Meal or No Meal
+PACKAGE NAME (APP ID): com.nothicalnonsence.mealnomeal
+
+SHORT DESCRIPTION (up to 80 chars):
+Meal or No Meal: a Deal-or-No-Deal style food tray game.
+
+FULL DESCRIPTION:
+Meal or No Meal is a Deal-or-No-Deal style game themed around food trays.
+Pick your tray, open the others, and decide whether to take the Chef's offers.
+
+FEATURES:
+- 26 trays with hidden values
+- Chef offers every few rounds
+- Bonus multipliers/additives
+- Final reveal and replay
+
+PRIVACY POLICY URL:
+(put your GitHub Pages privacy policy URL here)
+
+SUPPORT EMAIL:
+PUT_SUPPORT_EMAIL_HERE

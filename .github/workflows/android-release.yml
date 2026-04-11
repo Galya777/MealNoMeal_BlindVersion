@@ -1,0 +1,31 @@
+name: android-release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22.x'
+
+      - name: Install fyne
+        run: go install fyne.io/fyne/v2/cmd/fyne@latest
+
+      - name: Build Android package
+        run: |
+          fyne package -os android -name "Meal or No Meal" -appID com.nothicalnonsence.mealnomeal
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-build
+          path: |
+            *.apk
+            *.aab

@@ -851,7 +851,7 @@ func (g *Game) showDealAccepted(parent fyne.Window, offer int, chefImgID int) {
 }
 
 func main() {
-	a := app.New()
+	a := app.NewWithID("com.nothicalnonsence.mealnomeal")
 	w := a.NewWindow("🍽️ Meal or No Meal 🍽️")
 	g := NewGame()
 	g.win = w
