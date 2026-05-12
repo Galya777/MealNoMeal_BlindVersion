@@ -18,4 +18,4 @@ SUPPORT URL (optional):
 (put a URL here if you have one)
 
 SUPPORT EMAIL:
-PUT_SUPPORT_EMAIL_HERE
+cloe.sasha.jade.yasmine@gmail.com

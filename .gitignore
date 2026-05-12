@@ -11,3 +11,5 @@ bin/
 # IDE
 .idea/
 .vscode/
+
+android/keystore.properties

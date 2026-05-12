@@ -73,7 +73,8 @@ type Game struct {
 	openedValues     map[int]bool
 	chef             *Chef
 	bonus            *BonusManager
-	bonusOffered     bool // track if bonus has been offered this game
+	bonusOffered     bool       // track if bonus has been offered this game
+	adManager        *AdManager // controls ads and premium status
 }
 
 func NewGame() *Game {
@@ -83,6 +84,7 @@ func NewGame() *Game {
 		bonus:        NewBonusManager(),
 		openedValues: make(map[int]bool),
 		bonusOffered: false,
+		adManager:    NewAdManager(),
 	}
 }
 
@@ -231,23 +233,29 @@ func (g *Game) initialize() {
 }
 
 func (g *Game) setupUI(a fyne.App) fyne.CanvasObject {
+	// Container for labels
 	left := container.NewVBox()
 	right := container.NewVBox()
 	for i := 0; i < len(g.leftLabels); i++ {
 		l := g.leftLabels[i]
-		// Put each label into a small card (white box) for readability
-		left.Add(widget.NewCard("", "", l))
+		l.Alignment = fyne.TextAlignCenter
+		// We use a fixed width container for labels to prevent collapsing,
+		// but let the Card handle the background.
+		c := container.NewMax(l)
+		left.Add(widget.NewCard("", "", c))
 	}
 	for i := 0; i < len(g.rightLabels); i++ {
 		l := g.rightLabels[i]
-		right.Add(widget.NewCard("", "", l))
+		l.Alignment = fyne.TextAlignCenter
+		c := container.NewMax(l)
+		right.Add(widget.NewCard("", "", c))
 	}
 
 	g.gridButtons = make([]*widget.Button, NUM_TRAYS)
 	grid := container.NewGridWithColumns(6)
 	for i := 0; i < NUM_TRAYS; i++ {
 		index := i
-		btn := widget.NewButton(fmt.Sprintf("🍽️ %d", i+1), func() {
+		btn := widget.NewButton(fmt.Sprintf("%d", i+1), func() {
 			g.onTrayClicked(a, index)
 		})
 		btn.Importance = widget.HighImportance
@@ -255,8 +263,10 @@ func (g *Game) setupUI(a fyne.App) fyne.CanvasObject {
 		grid.Add(btn)
 	}
 
-	center := container.NewHBox(left, grid, right)
-	return center
+	// Използваме Border контейнер, където гридът е в центъра и се разпъва,
+	// а сумите са отляво и отдясно. Това ще позволи на подносите да запълнят
+	// наличното пространство, вместо да бъдат свити в центъра.
+	return container.NewBorder(nil, nil, left, right, grid)
 }
 
 func (g *Game) onTrayClicked(a fyne.App, idx int) {
@@ -274,22 +284,54 @@ func (g *Game) onTrayClicked(a fyne.App, idx int) {
 		g.gridButtons[idx].Disable()
 
 		// bottom indicator with the tray button
-		bottom := container.NewCenter(
-			container.NewHBox(
-				widget.NewLabel("My Tray: "),
-				g.playerTrayButton,
-			),
+		trayInfo := container.NewHBox(
+			widget.NewLabel("My Tray: "),
+			g.playerTrayButton,
 		)
+
+		// Setup header and banner
+		titleLabel := widget.NewLabel("🍽️ Meal or No Meal 🍽️")
+		titleLabel.TextStyle = fyne.TextStyle{Bold: true}
+		premiumBtn := widget.NewButton("⭐ Remove Ads ($1.99)", func() {
+			g.adManager.ShowPremiumDialog(w)
+		})
+		header := container.NewBorder(nil, nil, nil, premiumBtn, container.NewCenter(titleLabel))
+
+		bannerLabel := widget.NewLabel("📢 Advertisement Space")
+		bannerLabel.Alignment = fyne.TextAlignCenter
+		bannerArea := container.NewVBox(
+			container.NewCenter(trayInfo),
+			container.NewCenter(bannerLabel),
+		)
+
 		content := g.setupUI(a)
-		// Make sure the disabled state persists
-		g.gridButtons[idx].Disable()
+		// Re-disable all trays that were already opened
+		for i, opened := range g.openedValues {
+			if opened {
+				// Find tray index for this value
+				for trayIdx, val := range g.trayValues {
+					if val == i && g.itemNames[trayIdx] == "" {
+						g.gridButtons[trayIdx].Disable()
+					}
+				}
+			}
+		}
+		// Also handle food items
+		for i, name := range g.itemNames {
+			if name != "" {
+				// If it's a food item and its value is "opened" (removed from list)
+				if g.trayReplaced[i] != -1 && g.openedValues[g.trayReplaced[i]] {
+					g.gridButtons[i].Disable()
+				}
+			}
+		}
 
 		w.SetContent(container.NewBorder(
-			container.NewCenter(widget.NewLabel("🍽️ Meal or No Meal 🍽️")),
-			bottom,
+			header,
+			bannerArea,
 			nil,
 			nil,
-			container.NewCenter(content),
+			content,
 		))
 
 		dialog.ShowInformation("Your Tray",
@@ -740,55 +782,61 @@ func (g *Game) showFinalReveal(parent fyne.Window) {
 }
 
 func (g *Game) showPlayAgain(parent fyne.Window) {
-	playAgainBtn := widget.NewButton("🔄 Play Again", func() {
-		// Start a fresh game
-		ng := NewGame()
-		ng.win = parent
-		ng.initialize()
-		content := ng.setupUI(fyne.CurrentApp())
-		parent.SetContent(container.NewBorder(
-			container.NewCenter(widget.NewLabel("🍽️ Meal or No Meal 🍽️")),
-			nil,
-			nil,
-			nil,
-			container.NewCenter(content),
-		))
-	})
-
-	closeBtn := widget.NewButton("❌ Close", func() {
-		// Close the window and quit the app
-		parent.Close()
-		fyne.CurrentApp().Quit()
-	})
-
-	// Create buttons container
-	buttonsContainer := container.NewHBox(playAgainBtn, closeBtn)
-
-	// Create and show dialog, store reference so we can hide it
-	dlg := dialog.NewCustomWithoutButtons("🎮 Game Over", buttonsContainer, parent)
-
-	// Update play again button to hide dialog first
-	playAgainBtn.OnTapped = func() {
-		dlg.Hide()
-		// Start a fresh game
-		ng := NewGame()
-		ng.win = parent
-		ng.initialize()
-		content := ng.setupUI(fyne.CurrentApp())
-		parent.SetContent(container.NewBorder(
-			container.NewCenter(widget.NewLabel("🍽️ Meal or No Meal 🍽️")),
-			nil,
-			nil,
-			nil,
-			container.NewCenter(content),
-		))
+	// Show interstitial ad at end of game (if not premium)
+	if g.adManager.ShouldShowAds() {
+		// Log for testing
+		fmt.Println("Triggering interstitial ad")
+		g.adManager.ShowInterstitial()
 	}
 
-	closeBtn.OnTapped = func() {
-		dlg.Hide()
-		parent.Close()
-		fyne.CurrentApp().Quit()
-	}
+	content := widget.NewLabel("What would you like to do?")
+
+	// Use a standard confirm dialog so taps work reliably on mobile.
+	dlg := dialog.NewCustomConfirm(
+		"🎮 Game Over",
+		"🔄 Play Again",
+		"❌ Close",
+		content,
+		func(playAgain bool) {
+			if playAgain {
+				// Start a fresh game and preserve premium status across games.
+				ng := NewGame()
+				ng.win = parent
+				ng.initialize()
+				ng.adManager = g.adManager
+				gameContent := ng.setupUI(fyne.CurrentApp())
+
+				// Setup header and banner for new game.
+				titleLabel := widget.NewLabel("🍽️ Meal or No Meal 🍽️")
+				titleLabel.TextStyle = fyne.TextStyle{Bold: true}
+				premiumBtn := widget.NewButton("⭐ Remove Ads ($1.99)", func() {
+					ng.adManager.ShowPremiumDialog(parent)
+				})
+				header := container.NewBorder(nil, nil, nil, premiumBtn, container.NewCenter(titleLabel))
+
+				bannerLabel := widget.NewLabel("📢 Advertisement Space")
+				bannerLabel.Alignment = fyne.TextAlignCenter
+				bannerArea := container.NewCenter(bannerLabel)
+
+				if ng.adManager.ShouldShowAds() {
+					ng.adManager.ShowBanner()
+				}
+
+				parent.SetContent(container.NewBorder(
+					header,
+					bannerArea,
+					nil,
+					nil,
+					gameContent,
+				))
+				return
+			}
+
+			parent.Close()
+			fyne.CurrentApp().Quit()
+		},
+		parent,
+	)
 
 	dlg.Show()
 }
@@ -852,19 +900,44 @@ func (g *Game) showDealAccepted(parent fyne.Window, offer int, chefImgID int) {
 
 func main() {
 	a := app.NewWithID("com.nothicalnonsence.mealnomeal")
-	w := a.NewWindow("🍽️ Meal or No Meal 🍽️")
+	w := a.NewWindow("Meal or No Meal")
 	g := NewGame()
 	g.win = w
 	g.initialize()
 
+	// Platform bridge setup (simulated)
+	go func() {
+		time.Sleep(time.Second) // Small delay for UI to settle
+		if g.adManager.ShouldShowAds() {
+			g.adManager.ShowBanner()
+		}
+	}()
+
+	// Setup header with title and premium button
+	titleLabel := widget.NewLabel("🍽️ Meal or No Meal 🍽️")
+	titleLabel.TextStyle = fyne.TextStyle{Bold: true}
+
+	premiumBtn := widget.NewButton("⭐ Remove Ads ($1.99)", func() {
+		g.adManager.ShowPremiumDialog(w)
+	})
+	header := container.NewBorder(nil, nil, nil, premiumBtn, container.NewCenter(titleLabel))
+
+	// Setup banner ad area at bottom (always visible unless premium)
+	bannerLabel := widget.NewLabel("📢 Advertisement Space")
+	bannerLabel.Alignment = fyne.TextAlignCenter
+	bannerArea := container.NewCenter(bannerLabel)
+
+	// Show banner only if not premium (simulated for now)
+	// Handled by background routine
+
 	content := g.setupUI(a)
 	w.SetContent(container.NewBorder(
-		container.NewCenter(widget.NewLabel("🍽️ Meal or No Meal 🍽️")),
+		header,
+		bannerArea,
 		nil,
 		nil,
-		nil,
-		container.NewCenter(content),
+		content,
 	))
-	w.Resize(fyne.NewSize(1000, 600))
+	w.Resize(fyne.NewSize(1000, 650))
 	w.ShowAndRun()
 }
