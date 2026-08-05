@@ -1,0 +1,21 @@
+APP NAME: Meal or No Meal
+BUNDLE ID: com.nothicalnonsence.mealnomeal
+
+SUBTITLE:
+A food-themed Deal-or-No-Deal style game.
+
+DESCRIPTION:
+Meal or No Meal is a Deal-or-No-Deal style game themed around food trays.
+Pick your tray, open the others, and decide whether to take the Chef's offers.
+
+KEYWORDS:
+meal, food, deal, game, luck
+
+PRIVACY POLICY URL:
+(put your GitHub Pages privacy policy URL here)
+
+SUPPORT URL (optional):
+(put a URL here if you have one)
+
+SUPPORT EMAIL:
+cloe.sasha.jade.yasmine@gmail.com

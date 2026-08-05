@@ -1,0 +1,15 @@
+# Fyne build outputs
+bin/
+*.app/
+*.apk
+*.aab
+*.ipa
+
+# OS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+
+android/keystore.properties

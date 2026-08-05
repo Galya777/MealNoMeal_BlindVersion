@@ -1,0 +1,40 @@
+name: Build and Sign Android Release (API 36)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22.x'
+
+      - name: Build patched fyne CLI for API 36
+        run: ./tools/build_fyne_api36.sh
+
+      - name: Build Android App Bundle (AAB) with API 36
+        run: |
+          ./bin/fyne-api36 package -os android --app-id com.nothicalnonsence.mealnomeal -name "Meal_No_Meal_Release" --release
+        env:
+          CGO_ENABLED: 1
+
+      - name: Sign the AAB
+        run: |
+          jarsigner -keystore upload.jks -storepass mealnomeal123 Meal_No_Meal_Release.aab upload
+        
+      - name: Verify the signature
+        run: |
+          jarsigner -verify Meal_No_Meal_Release.aab
+
+      - name: Upload Signed AAB for release
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-android-release
+          path: Meal_No_Meal_Release.aab
