@@ -276,6 +276,14 @@ func (g *Game) onTrayClicked(a fyne.App, idx int) {
 	if g.playerTray == -1 {
 		g.playerTray = idx
 
+		// Mark the player's tray value as opened in openedValues map
+		val := g.trayValues[idx]
+		if val != -1 {
+			g.openedValues[val] = true
+		} else if g.trayReplaced[idx] != -1 {
+			g.openedValues[g.trayReplaced[idx]] = true
+		}
+
 		// Create a visual representation of player's tray (same size as other trays)
 		g.playerTrayButton = widget.NewButton(fmt.Sprintf("🍽️ %d", idx+1), nil)
 		g.playerTrayButton.Importance = widget.HighImportance
@@ -334,6 +342,9 @@ func (g *Game) onTrayClicked(a fyne.App, idx int) {
 			content,
 		))
 
+		// Refresh labels to apply checkmarks for opened values
+		g.refreshLabels()
+
 		dialog.ShowInformation("Your Tray",
 			fmt.Sprintf("You chose Tray %d. This is your tray until the end!", idx+1), w)
 		return
@@ -365,7 +376,7 @@ func (g *Game) showTrayOpenedDialog(parent fyne.Window, idx int) {
 			container.NewCenter(label),
 		)
 	} else {
-		// Show money value with corresponding image (1-26)
+		// Show money value with image
 		// Find which position this value is in the VALUES array
 		valueIndex := -1
 		for i, v := range VALUES {
@@ -408,13 +419,15 @@ func (g *Game) markPriceAsOpened(trayIndex int) {
 		g.openedValues[removed] = true // track it
 		for i := 0; i < len(VALUES); i++ {
 			if VALUES[i] == removed {
+				var lbl *widget.Label
 				if i < len(VALUES)/2 {
-					lbl := g.leftLabels[i]
-					lbl.SetText("✓ " + lbl.Text)
+					lbl = g.leftLabels[i]
 				} else {
-					lbl := g.rightLabels[i-len(VALUES)/2]
-					lbl.SetText("✓ " + lbl.Text)
+					lbl = g.rightLabels[i-len(VALUES)/2]
 				}
+				lbl.SetText("✓ " + lbl.Text)
+				//lbl.TextStyle.Color = color.Gray{Y: 128} // Задаваме сив цвят на текста
+				lbl.Refresh() // Опресняваме етикета
 				return
 			}
 		}
@@ -425,13 +438,15 @@ func (g *Game) markPriceAsOpened(trayIndex int) {
 	g.openedValues[val] = true // track it
 	for i := 0; i < len(VALUES); i++ {
 		if VALUES[i] == val {
+			var lbl *widget.Label
 			if i < len(VALUES)/2 {
-				lbl := g.leftLabels[i]
-				lbl.SetText("✓ " + lbl.Text)
+				lbl = g.leftLabels[i]
 			} else {
-				lbl := g.rightLabels[i-len(VALUES)/2]
-				lbl.SetText("✓ " + lbl.Text)
+				lbl = g.rightLabels[i-len(VALUES)/2]
 			}
+			lbl.SetText("✓ " + lbl.Text)
+			//lbl.TextStyle.Color = color.Gray{Y: 128} // Задаваме сив цвят на текста
+			lbl.Refresh() // Опресняваме етикета
 			return
 		}
 	}
@@ -773,6 +788,7 @@ func (g *Game) showFinalReveal(parent fyne.Window) {
 
 	d := dialog.NewCustom("Final Reveal", "OK", contentWidget, parent)
 	d.SetOnClosed(func() {
+		g.markPriceAsOpened(g.playerTray)
 		for _, b := range g.gridButtons {
 			b.Disable()
 		}
@@ -890,6 +906,7 @@ func (g *Game) showDealAccepted(parent fyne.Window, offer int, chefImgID int) {
 
 	d := dialog.NewCustom("Game Over - Deal Accepted!", "OK", contentWidget, parent)
 	d.SetOnClosed(func() {
+		g.markPriceAsOpened(g.playerTray)
 		for _, b := range g.gridButtons {
 			b.Disable()
 		}

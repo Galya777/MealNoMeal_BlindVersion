@@ -1,0 +1,17 @@
+1. export ANDROID_NDK_HOME=/home/galya777/Android/Sdk/ndk/26.3.11579264 && ./bin/fyne-api36 package --help
+
+2.cd /home/galya777/GolandProjects/MealNoMeal/android && ./gradlew bundleRelease
+
+3. echo "sdk.dir=/home/galya777/Android/Sdk" > /home/galya777/GolandProjects/MealNoMeal/android/local.properties
+
+4.cd /home/galya777/GolandProjects/MealNoMeal/android && ./gradlew bundleRelease
+
+find /home/galya777/GolandProjects/MealNoMeal/android -name "*.aab" -type f
+
+do not forget cd..
+5. (sign) jarsigner -keystore upload.jks -storepass mealnomeal123 android/app/build/outputs/bundle/release/app-release.aab upload
+
+6. jarsigner -verify android/app/build/outputs/bundle/release/app-release.aab
+
+
+google group: https://groups.google.com/g/mealnomeal

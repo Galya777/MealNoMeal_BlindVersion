@@ -9,7 +9,7 @@ import (
 	"fyne.io/fyne/v2"
 )
 
-//go:embed images/*.jpg
+//go:embed images/*
 var embeddedImagesFS embed.FS
 
 var (
@@ -20,7 +20,7 @@ var (
 func getEmbeddedImageResource(filename string) fyne.Resource {
 	embeddedImagesOnce.Do(func() {
 		embeddedImagesMap = make(map[string]fyne.Resource)
-		matches, err := fs.Glob(embeddedImagesFS, "images/*.jpg")
+		matches, err := fs.Glob(embeddedImagesFS, "images/*")
 		if err != nil {
 			return
 		}
