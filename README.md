@@ -56,3 +56,11 @@ go get fyne.io/fyne/v2
 
 # Run
 go run main.go
+
+
+#You can play the game in the appstoreL
+
+- become my tester:
+https://play.google.com/store/apps/details?id=com.nothicalnonsence.mealnomeal
+- official game:
+TBA
