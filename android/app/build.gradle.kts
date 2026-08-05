@@ -5,6 +5,17 @@ plugins {
 
 import java.util.Properties
 
+// Correctly locate the root project directory, which is one level up
+val trueRoot = rootProject.projectDir.parentFile
+
+// Load keystore properties from the true root directory
+val keystorePropertiesFile = File(trueRoot, "keystore.properties")
+val keystoreProperties = Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(keystorePropertiesFile.inputStream())
+}
+
+
 android {
     namespace = "com.nothicalnonsence.mealnomeal"
     compileSdk = 36
@@ -13,8 +24,8 @@ android {
         applicationId = "com.nothicalnonsence.mealnomeal"
         minSdk = 21
         targetSdk = 36
-        versionCode = 22
-        versionName = "1.0.3"
+        versionCode = 23
+        versionName = "1.0.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -25,23 +36,11 @@ android {
 
     signingConfigs {
         create("release") {
-            val props = Properties()
-            val propsFile = rootProject.file("keystore.properties")
-            if (propsFile.exists()) {
-                propsFile.inputStream().use { props.load(it) }
-            }
-
-            val storeFilePath = (props.getProperty("storeFile") ?: System.getenv("MEALNOMEAL_STORE_FILE"))
-            val storePasswordValue = (props.getProperty("storePassword") ?: System.getenv("MEALNOMEAL_STORE_PASSWORD"))
-            val keyAliasValue = (props.getProperty("keyAlias") ?: System.getenv("MEALNOMEAL_KEY_ALIAS"))
-            val keyPasswordValue = (props.getProperty("keyPassword") ?: System.getenv("MEALNOMEAL_KEY_PASSWORD"))
-
-            if (storeFilePath != null && storePasswordValue != null && keyAliasValue != null && keyPasswordValue != null) {
-                storeFile = file(storeFilePath)
-                storePassword = storePasswordValue
-                keyAlias = keyAliasValue
-                keyPassword = keyPasswordValue
-            }
+            // Securely load signing information from the true root project directory
+            keyAlias = keystoreProperties.getProperty("keyAlias")
+            keyPassword = keystoreProperties.getProperty("keyPassword")
+            storeFile = if (keystoreProperties.getProperty("storeFile") != null) File(trueRoot, keystoreProperties.getProperty("storeFile")) else null
+            storePassword = keystoreProperties.getProperty("storePassword")
         }
     }
 
@@ -49,14 +48,19 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = false // Set to true if you have many resources
-            // signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // TEMPORARY: Using test ID for testers.
+            // TODO: Before final public release, uncomment your real ID and delete the test ID line.
+            // manifestPlaceholders["admobAppId"] = "pub-9711678354769533"
+            manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"
         }
         debug {
             isMinifyEnabled = false
+            manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"
         }
     }
 

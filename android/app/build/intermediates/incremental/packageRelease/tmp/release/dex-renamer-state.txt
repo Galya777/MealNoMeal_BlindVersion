@@ -1,0 +1,4 @@
+#Wed Aug 05 20:35:41 EEST 2026
+base.0=/home/galya777/GolandProjects/MealNoMeal/android/app/build/intermediates/dex/release/minifyReleaseWithR8/classes.dex
+path.0=classes.dex
+renamed.0=classes.dex

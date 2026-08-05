@@ -1,8 +1,8 @@
 1<?xml version="1.0" encoding="utf-8"?>
 2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
 3    package="com.nothicalnonsence.mealnomeal"
-4    android:versionCode="22"
-5    android:versionName="1.0.3" >
+4    android:versionCode="23"
+5    android:versionName="1.0.4" >
 6
 7    <uses-sdk
 8        android:minSdkVersion="21"
@@ -85,11 +85,10 @@
 49        android:theme="@style/Theme.MealNoMeal" >
 49-->/home/galya777/GolandProjects/MealNoMeal/android/app/src/main/AndroidManifest.xml:9:9-48
 50        <meta-data
-50-->/home/galya777/GolandProjects/MealNoMeal/android/app/src/main/AndroidManifest.xml:11:9-13:70
 51            android:name="com.google.android.gms.ads.APPLICATION_ID"
 51-->/home/galya777/GolandProjects/MealNoMeal/android/app/src/main/AndroidManifest.xml:12:13-69
 52            android:value="ca-app-pub-3940256099942544~3347511713" />
-52-->/home/galya777/GolandProjects/MealNoMeal/android/app/src/main/AndroidManifest.xml:13:13-67
+52-->/home/galya777/GolandProjects/MealNoMeal/android/app/src/main/AndroidManifest.xml:13:13-42
 53
 54        <activity
 54-->/home/galya777/GolandProjects/MealNoMeal/android/app/src/main/AndroidManifest.xml:15:9-22:20
