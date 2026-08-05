@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"runtime" // Импортираме runtime, за да проверим ОС
 	"strconv"
 	"time"
 
@@ -97,11 +98,16 @@ func loadImage(filename string, width, height float32) fyne.CanvasObject {
 		return img
 	}
 
-	img := canvas.NewImageFromFile("images/" + filename)
+	// Fallback to file system ONLY if not on Android
+	if runtime.GOOS != "android" {
+		img := canvas.NewImageFromFile("images/" + filename)
+		img.FillMode = canvas.ImageFillContain
+		img.SetMinSize(fyne.NewSize(width, height))
+		return img
+	}
 
-	img.FillMode = canvas.ImageFillContain
-	img.SetMinSize(fyne.NewSize(width, height))
-	return img
+	// On Android, if the resource is not embedded, do not try to load from file.
+	return nil
 }
 
 // Helper function to get the closest value image for an offer
@@ -252,7 +258,9 @@ func (g *Game) setupUI(a fyne.App) fyne.CanvasObject {
 	}
 
 	g.gridButtons = make([]*widget.Button, NUM_TRAYS)
-	grid := container.NewGridWithColumns(6)
+
+	// Използваме NewGridWrap за адаптивен брой колони и NewVScroll за скролиране
+	gridContent := container.NewGridWrap(fyne.NewSize(100, 100)) // Минимален размер на бутон 100x100
 	for i := 0; i < NUM_TRAYS; i++ {
 		index := i
 		btn := widget.NewButton(fmt.Sprintf("%d", i+1), func() {
@@ -260,13 +268,15 @@ func (g *Game) setupUI(a fyne.App) fyne.CanvasObject {
 		})
 		btn.Importance = widget.HighImportance
 		g.gridButtons[i] = btn
-		grid.Add(btn)
+		gridContent.Add(btn)
 	}
+
+	scrollableGrid := container.NewVScroll(gridContent)
 
 	// Използваме Border контейнер, където гридът е в центъра и се разпъва,
 	// а сумите са отляво и отдясно. Това ще позволи на подносите да запълнят
 	// наличното пространство, вместо да бъдат свити в центъра.
-	return container.NewBorder(nil, nil, left, right, grid)
+	return container.NewBorder(nil, nil, left, right, scrollableGrid)
 }
 
 func (g *Game) onTrayClicked(a fyne.App, idx int) {
@@ -426,7 +436,7 @@ func (g *Game) markPriceAsOpened(trayIndex int) {
 					lbl = g.rightLabels[i-len(VALUES)/2]
 				}
 				lbl.SetText("✓ " + lbl.Text)
-				//lbl.TextStyle.Color = color.Gray{Y: 128} // Задаваме сив цвят на текста
+				// lbl.TextStyle.Color = color.Gray{Y: 128} // Премахнато
 				lbl.Refresh() // Опресняваме етикета
 				return
 			}
@@ -445,7 +455,7 @@ func (g *Game) markPriceAsOpened(trayIndex int) {
 				lbl = g.rightLabels[i-len(VALUES)/2]
 			}
 			lbl.SetText("✓ " + lbl.Text)
-			//lbl.TextStyle.Color = color.Gray{Y: 128} // Задаваме сив цвят на текста
+			// lbl.TextStyle.Color = color.Gray{Y: 128} // Премахнато
 			lbl.Refresh() // Опресняваме етикета
 			return
 		}
@@ -717,7 +727,7 @@ func (g *Game) refreshLabels() {
 		valLeft := display[i]
 		var textLeft string
 		if valLeft == -999999 {
-			textLeft = "🍽️ FOOD ITEM"
+			textLeft = "🍔 FOOD ITEM"
 		} else {
 			textLeft = fmt.Sprintf("$%d", valLeft)
 		}
@@ -729,7 +739,7 @@ func (g *Game) refreshLabels() {
 		valRight := display[i+half]
 		var textRight string
 		if valRight == -999999 {
-			textRight = "🍽️ FOOD ITEM"
+			textRight = "🍔 FOOD ITEM"
 		} else {
 			textRight = fmt.Sprintf("$%d", valRight)
 		}
